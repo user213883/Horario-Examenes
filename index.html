@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>App Estudio PAU</title>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --text: #000;
+      --card: #fff;
+      --secondary: #eaeaea;
+    }
+
+    body.dark {
+      --bg: #1e1e1e;
+      --text: #f0f0f0;
+      --card: #2e2e2e;
+      --secondary: #3a3a3a;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      flex-wrap: wrap;
+    }
+
+    .spotify-frame {
+      flex: 1 1 300px;
+      max-width: 400px;
+      margin-right: 1rem;
+    }
+
+    .pomodoro-timer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--secondary);
+      padding: 1rem;
+      border-radius: 12px;
+    }
+
+    .timer-display {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .timer-mode {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .timer-button, .dark-mode-toggle {
+      background: #3498db;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    .dark-mode-toggle {
+      margin-left: auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 2rem 0 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: var(--card);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    .day h2 { margin-top: 2rem; }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      padding: 0.6rem;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 10px;
+      transform: scale(1.2);
+    }
+
+    .Física { background: #e74c3c; }
+    .Matemáticas { background: #2980b9; }
+    .Dibujo { background: #8e44ad; }
+    .Historia { background: #d35400; }
+    .Filosofía { background: #16a085; }
+    .Castellano { background: #2c3e50; }
+    .Valenciano { background: #f39c12; }
+    .Libre { background: #7f8c8d; }
+
+    .stats {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: var(--card);
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="spotify-frame">
+      <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/1BC7DsARF1AbyFwyfGl0ay?utm_source=generator" width="100%" height="80" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+    </div>
+    <div class="pomodoro-timer">
+      <div class="timer-mode" id="timer-mode">Estudio</div>
+      <div class="timer-display" id="timer">25:00</div>
+      <button class="timer-button" id="startPause">▶ Iniciar</button>
+	<button class="timer-button" id="resetTimer">🔄 Reiniciar</button>
+    </div>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌓 Modo Oscuro</button>
+  </div>
+
+  <h1>Horario Estudio Finales 3ª Evaluación – 16 al 28 abril</h1>
+  <div class="container" id="checklist"></div>
+
+  <div class="stats" id="stats">
+    <h2>📈 Estadísticas de estudio</h2>
+    <ul id="stats-list"></ul>
+  </div>
+
+  <audio id="alarm" src="https://notificationsounds.com/storage/sounds/file-sounds-1153-light.mp3" preload="auto"></audio>
+
+  <script>
+    let isRunning = false, isBreak = false;
+    let timerDisplay = document.getElementById('timer');
+    let modeDisplay = document.getElementById('timer-mode');
+    let button = document.getElementById('startPause');
+    let alarm = document.getElementById('alarm');
+    let timeLeft = parseInt(localStorage.getItem('timeLeft')) || 1500;
+    let lastMode = localStorage.getItem('isBreak') === 'true';
+    isBreak = lastMode;
+    modeDisplay.textContent = isBreak ? "Descanso" : "Estudio";
+    timerDisplay.textContent = formatTime(timeLeft);
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    }
+
+    function notify(msg) {
+      if (Notification.permission === "granted") new Notification(msg);
+    }
+
+    function switchMode() {
+      isBreak = !isBreak;
+      timeLeft = isBreak ? 5*60 : 25*60;
+      modeDisplay.textContent = isBreak ? "Descanso" : "Estudio";
+      localStorage.setItem('isBreak', isBreak);
+      localStorage.setItem('timeLeft', timeLeft);
+      alarm.play();
+      notify(`¡Tiempo de ${isBreak ? 'descanso' : 'estudiar'}!`);
+    }
+
+    function updateTimer() {
+      if (isRunning) {
+        timeLeft--;
+        if (timeLeft <= 0) switchMode();
+        timerDisplay.textContent = formatTime(timeLeft);
+        localStorage.setItem('timeLeft', timeLeft);
+      }
+    }
+
+    button.onclick = () => {
+      isRunning = !isRunning;
+      button.textContent = isRunning ? '⏸ Pausar' : '▶ Iniciar';
+    }
+    
+    document.getElementById('resetTimer').onclick = () => {
+    if (confirm("¿Estás seguro de que quieres reiniciar el temporizador?")) {
+      isRunning = false;
+      timeLeft = isBreak ? 5*60 : 25*60;
+      timerDisplay.textContent = formatTime(timeLeft);
+      button.textContent = '▶ Iniciar';
+      }
+    };
+
+
+    setInterval(updateTimer, 1000);
+    if (Notification.permission !== "granted") Notification.requestPermission();
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    }
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+
+    const sesiones = {"Mié 16":[["Historia","17:20 – 18:30","Biblioteca"],["Matemáticas","18:45 – 20:00","Biblioteca"]],"Jue 17":[["Física","11:00 – 12:15","Biblioteca"],["Dibujo","12:30 – 13:30","Biblioteca"]],"Vie 18":[["Historia","11:00 – 12:15","Biblioteca"],["Filosofía","12:30 – 13:30","Biblioteca"]],"Sáb 19":[["Matemáticas","11:00 – 12:15","Biblioteca"],["Física","12:30 – 13:45","Biblioteca"],["Castellano","16:00 – 17:00","Casa"],["Valenciano","17:15 – 18:30","Casa"]],"Lun 21":[["Dibujo","21:00 – 22:00","Casa"]],"Mar 22":[["Física","11:00 – 12:15","Biblioteca"],["Historia","12:30 – 13:30","Biblioteca"],["Matemáticas","16:00 – 17:15","Biblioteca"],["Castellano","17:30 – 18:30","Biblioteca"]],"Mié 23":[["Dibujo","11:00 – 12:15","Biblioteca"],["Filosofía","12:30 – 13:30","Biblioteca"],["Matemáticas","16:00 – 17:30","Biblioteca"],["Física","17:45 – 19:00","Biblioteca"]],"Jue 24":[["Historia","11:00 – 12:15","Biblioteca"],["Dibujo","12:30 – 13:30","Biblioteca"],["Física","16:00 – 17:15","Biblioteca"],["Valenciano","17:30 – 18:30","Biblioteca"]],"Vie 25":[["Matemáticas","11:00 – 12:15","Biblioteca"],["Filosofía","12:30 – 13:30","Biblioteca"],["Historia","16:00 – 17:30","Biblioteca"]],"Sáb 26":[["Dibujo","11:00 – 12:15","Biblioteca"],["Física","12:30 – 13:30","Biblioteca"],["Matemáticas","16:00 – 17:15","Biblioteca"],["Castellano","17:30 – 18:30","Casa"]],"Dom 27":[["Historia","11:00 – 12:15","Biblioteca"],["Valenciano","12:30 – 13:30","Biblioteca"],["Física","16:00 – 17:30","Biblioteca"]],"Lun 28":[["Matemáticas","11:00 – 12:15","Biblioteca"],["Dibujo","12:30 – 13:30","Biblioteca"],["Libre","16:00 – 17:30","Biblioteca"]]};
+
+    const checklist = document.getElementById('checklist');
+    const statsList = document.getElementById('stats-list');
+    const stats = {};
+
+    Object.entries(sesiones).forEach(([dia, tareas]) => {
+      const dayDiv = document.createElement('div');
+      const title = document.createElement('h2');
+      title.textContent = dia;
+      dayDiv.appendChild(title);
+      tareas.forEach((item, index) => {
+        const [asignatura, hora, lugar] = item;
+        const id = `${dia}-${index}`;
+        const checked = localStorage.getItem(id) === 'true';
+        if (!stats[dia]) stats[dia] = 0;
+        if (checked) stats[dia]++;
+        const label = document.createElement('label');
+        label.className = asignatura.replace(" ", "");
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = checked;
+        checkbox.onchange = () => {
+          localStorage.setItem(id, checkbox.checked);
+          stats[dia] += checkbox.checked ? 1 : -1;
+          renderStats();
+        };
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(` ${hora}: ${asignatura} (${lugar})`));
+        dayDiv.appendChild(label);
+      });
+      checklist.appendChild(dayDiv);
+    });
+
+    function renderStats() {
+      statsList.innerHTML = '';
+      Object.entries(stats).forEach(([dia, count]) => {
+        const li = document.createElement('li');
+        li.textContent = `${dia}: ${count} sesiones completadas`;
+        statsList.appendChild(li);
+      });
+    }
+    renderStats();
+  </script>
+</body>
+</html>
+
